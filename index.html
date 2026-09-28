@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Leaflet JS - Flores Timur</title>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+
+    <style>
+        html,
+        body,
+        #map {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+        }
+
+        .popup-image {
+            width: 200px;
+            margin-top: 8px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="map"></div>
+
+
+    <!-- JQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="">
+        </script>
+
+
+    <script>
+
+        // =====================================================
+        // INISIALISASI PETA
+        // =====================================================
+
+        var map = L.map("map").setView(
+            [-8.3234395, 123.0159760],
+            10
+        );
+
+
+        // =====================================================
+        // TILE LAYER BASE MAP
+        // =====================================================
+
+        var basemap = L.tileLayer(
+            "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+            {
+                attribution:
+                    '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }
+        );
+
+
+        // Menambahkan basemap ke dalam peta
+        basemap.addTo(map);
+
+
+
+        // =====================================================
+        // GEOJSON POINT TOPONIMI
+        // =====================================================
+
+        var Toponimi = L.geoJSON(null, {
+
+            // Style Point
+            pointToLayer: function (feature, latlng) {
+                return L.marker(latlng, {
+                    icon: L.icon({
+                        iconUrl: "images/home_marker.png",
+                        iconSize: [48, 48],
+                        iconAnchor: [24, 48],
+                        popupAnchor: [0, -48],
+                        tooltipAnchor: [-16, -30]
+                    })
+                });
+            },
+
+            // onEachFeature
+            onEachFeature: function (feature, layer) {
+
+                var nama = feature.properties.TOPONIMI;
+                var jenis = feature.properties.NAMA_UNSUR;
+                var image = feature.properties.image;
+
+                var koordinat =
+                    feature.geometry.coordinates[1] +
+                    ", " +
+                    feature.geometry.coordinates[0];
+
+
+                // Variable popup content
+                var popup_content =
+                    "<b>Nama</b><br>" +
+                    nama +
+                    "<br><br>" +
+
+                    "<b>Jenis</b><br>" +
+                    jenis +
+                    "<br><br>" +
+
+                    "<b>Koordinat</b><br>" +
+                    koordinat;
+
+
+                // Jika memiliki gambar
+                if (
+                    image !== null &&
+                    image !== "" &&
+                    image !== undefined
+                ) {
+
+                    popup_content =
+                        "<img src='images/" +
+                        image +
+                        "' class='popup-image'>" +
+
+                        "<br><br>" +
+
+                        popup_content;
+                }
+
+
+                // Popup
+                layer.bindPopup(popup_content);
+
+
+                // Tooltip
+                layer.bindTooltip(
+                    nama,
+                    {
+                        direction: "left",
+                        sticky: true
+                    }
+                );
+
+            }
+
+        });
+
+
+        // Memanggil GeoJSON Toponimi
+        $.getJSON(
+            "data/toponimi.geojson",
+            function (data) {
+
+                Toponimi.addData(data);
+
+                map.addLayer(Toponimi);
+
+            }
+        );
+
+
+
+        // =====================================================
+        // GEOJSON POLYLINE JALAN
+        // =====================================================
+
+        var jalan = L.geoJSON(null, {
+
+            // Style Jalan
+            style: function (feature) {
+
+                return {
+
+                    color: "red",
+                    opacity: 1,
+                    weight: 3
+
+                };
+
+            },
+
+
+            // onEachFeature
+            onEachFeature: function (feature, layer) {
+
+                var fungsi =
+                    feature.properties.NAMA_UNSUR;
+
+                var panjang =
+                    feature.properties.panjang_km;
+
+
+                // Variable popup content
+                var popup_content =
+
+                    "<b>Fungsi:</b> " +
+                    fungsi +
+
+                    "<br>" +
+
+                    "<b>Panjang (km):</b> " +
+                    Number(panjang).toFixed(3);
+
+
+                // Popup
+                layer.bindPopup(popup_content);
+
+
+                // Tooltip
+                layer.bindTooltip(
+                    fungsi,
+                    {
+                        direction: "auto",
+                        sticky: true
+                    }
+                );
+
+            }
+
+        });
+
+
+        // Memanggil GeoJSON Jalan
+        $.getJSON(
+            "data/jalan.geojson",
+            function (data) {
+
+                jalan.addData(data);
+
+                map.addLayer(jalan);
+
+            }
+        );
+
+
+
+        // =====================================================
+        // GEOJSON POLYGON JUMLAH PENDUDUK
+        // =====================================================
+
+        var jumlah_penduduk = L.geoJSON(null, {
+
+            // Style berdasarkan jumlah penduduk
+            style: function (feature) {
+
+                var penduduk =
+                    feature.properties.Penduduk;
+
+
+                // Kelas 1
+                if (penduduk <= 12000) {
+
+                    return {
+
+                        opacity: 1,
+                        color: "black",
+                        weight: 1,
+                        fillOpacity: 0.7,
+                        fillColor: "#ffffb2"
+
+                    };
+
+                }
+
+
+                // Kelas 2
+                if (
+                    penduduk > 12000 &&
+                    penduduk <= 24000
+                ) {
+
+                    return {
+
+                        opacity: 1,
+                        color: "black",
+                        weight: 1,
+                        fillOpacity: 0.7,
+                        fillColor: "#fd8d3c"
+
+                    };
+
+                }
+
+
+                // Kelas 3
+                if (penduduk > 24000) {
+
+                    return {
+
+                        opacity: 1,
+                        color: "black",
+                        weight: 1,
+                        fillOpacity: 0.7,
+                        fillColor: "#bd0026"
+
+                    };
+
+                }
+
+            },
+
+
+            // onEachFeature
+            onEachFeature: function (feature, layer) {
+
+                var kecamatan =
+                    feature.properties.WADMKC;
+
+                var penduduk =
+                    feature.properties.Penduduk;
+
+                var luas =
+                    feature.properties.luas_km2;
+
+
+                // Variable popup content
+                var popup_content =
+
+                    "<b>Kecamatan:</b> " +
+                    kecamatan +
+
+                    "<br>" +
+
+                    "<b>Jumlah Penduduk:</b> " +
+                    Number(penduduk).toLocaleString("id-ID") +
+                    " jiwa" +
+
+                    "<br>" +
+
+                    "<b>Luas:</b> " +
+                    Number(luas).toFixed(3) +
+                    " km²";
+
+
+                // Popup
+                layer.bindPopup(popup_content);
+
+
+                // Tooltip
+                layer.bindTooltip(
+                    kecamatan,
+                    {
+                        direction: "auto",
+                        sticky: true
+                    }
+                );
+
+            }
+
+        });
+
+
+        // Memanggil GeoJSON Jumlah Penduduk
+        $.getJSON(
+            "data/jumlah_penduduk.geojson",
+            function (data) {
+
+                jumlah_penduduk.addData(data);
+
+                map.addLayer(jumlah_penduduk);
+
+            }
+        );
+
+
+
+        // =====================================================
+        // CONTROL LAYER
+        // =====================================================
+
+        var baseMaps = {
+
+            "OpenStreetMap": basemap
+
+        };
+
+
+        var overlayMaps = {
+
+            "Toponimi": Toponimi,
+
+            "Jalan": jalan,
+
+            "Jumlah Penduduk": jumlah_penduduk
+
+        };
+
+
+        var controllayer =
+            L.control.layers(
+                baseMaps,
+                overlayMaps
+            );
+
+
+        controllayer.addTo(map);
+
+
+    </script>
+
+</body>
+
+</html>
